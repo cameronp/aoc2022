@@ -1,6 +1,5 @@
 use std::io::{self, BufRead};
 use std::fs::File;
-use std::str::Split;
 
 fn readlines(filename: &str) -> Result<Vec<String>, io::Error> {
     let file: File = File::open(filename)?;
