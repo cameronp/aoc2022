@@ -80,6 +80,34 @@ fn total_score(round: (&str, &str)) -> i32 {
 }
 
 
+// This corrects the round, according to the part 2 rules.
+// According to the rules, X means I'm supposed to lose
+// Y means draw, and Z means win.  This function takes a round, interprets it according to the new rules
+// and returns what the round would have been according to the part 1 rules to achieve the 
+// correct result.
+
+fn correct(round: (&str, &str)) -> (&'static str, &'static str) {
+    match round {
+        // he throws rock
+        ("A", "X") => ("A", "Z"), // Supposed to lose, so scissors
+        ("A", "Y") => ("A", "X"), // Supposed to draw, so rock
+        ("A", "Z") => ("A", "Y"), // Supposed to win, so paper
+
+        // he throws paper
+        ("B", "X") => ("B", "X"), // Supposed to lose, so rock
+        ("B", "Y") => ("B", "Y"), // Supposed to draw, so paper
+        ("B", "Z") => ("B", "Z"), // Supposed to win, so scissors
+
+        // he throws scissors
+        ("C", "X") => ("C", "Y"), // Supposed to lose, so paper
+        ("C", "Y") => ("C", "Z"), // Supposed to draw, so scissors
+        ("C", "Z") => ("C", "X"), // Supposed to win, so rock
+
+        _ => panic!()
+    }
+}
+
+
 fn main() {
     let lines: Vec<String> = readlines("input.txt").unwrap();
     
@@ -93,6 +121,19 @@ fn main() {
     print!("Part 1: ");
     println!("{:?}",scores.iter().sum::<i32>());
 
+    let corrected: Vec<(&str,&str)> =
+        pairs
+        .iter()
+        .map(|round| correct(*round))
+        .collect();
+        
+    let corrected_scores: Vec<i32> = corrected
+        .iter()
+        .map(|round| total_score(*round))
+        .collect();
+
+    print!("Part 2: ");
+    println!("{:?}",corrected_scores.iter().sum::<i32>());
 
 }
 
