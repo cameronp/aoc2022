@@ -1,4 +1,4 @@
-use std::io::{self, BufRead, Lines};
+use std::io::{self, BufRead};
 use std::fs::File;
 use regex::Regex;
 
@@ -14,18 +14,20 @@ fn readlines(filename: &str) -> Result<Vec<String>, io::Error> {
 struct Move {
     from: usize,
     to: usize,
-    count: usize
+    count: usize,
+    version: usize
 }
 
 impl Move {
-    pub fn parse(m: &str) -> Option<Move> {
+    pub fn parse(m: &str, version: usize) -> Option<Move> {
         let re = Regex::new(r"move (\d+) from (\d+) to (\d+)").unwrap();
         if let Some(captures) = re.captures(m) {
             Some(
                 Move {
                 count: captures[1].parse().unwrap(),
                 from: captures[2].parse().unwrap(),
-                to: captures[3].parse().unwrap()
+                to: captures[3].parse().unwrap(),
+                version: version
                 })
         } else {
             None
@@ -72,9 +74,30 @@ impl<T> Shipyard<T> {
     }
 
     pub fn execute_move(&mut self, cmd: Move) -> () {
-        for _ in (0..cmd.count) {
-            self.move_crate(cmd.from, cmd.to);
+        match cmd.version {
+            8000 => {
+                for _ in 0..cmd.count {
+                    self.move_crate(cmd.from, cmd.to);
+                }        
+            },
+            8001 => {
+                self.move_multiple_crates(cmd);
+            },
+            _ => {
+                panic!();
+            }
         }
+    }
+
+    fn move_multiple_crates<>(&mut self, cmd: Move) -> () {
+        for _ in 0..cmd.count {
+            self.move_crate(cmd.from, 0);
+        }        
+
+        for _ in 0..cmd.count {
+            self.move_crate(0, cmd.to);
+        }        
+
     }
 
 }
@@ -85,7 +108,7 @@ impl<T> Shipyard<T> {
 
 #[test]
 fn test_move() {
-    let m = Move::parse("move 2 from 24 to 23").unwrap();
+    let m = Move::parse("move 2 from 24 to 23", 8000).unwrap();
     assert_eq!(m.count, 2);
     assert_eq!(m.from, 24);
     assert_eq!(m.to, 23);
@@ -97,10 +120,10 @@ fn test_setup() {
     sy.init_bay(1, "ZN".chars().collect());
     sy.init_bay(2, "MCD".chars().collect());
     sy.init_bay(3, "P".chars().collect());
-    let m1 = Move::parse("move 1 from 2 to 1").unwrap();
-    let m2 = Move::parse("move 3 from 1 to 3").unwrap();
-    let m3 = Move::parse("move 2 from 2 to 1").unwrap();
-    let m4 = Move::parse("move 1 from 1 to 2").unwrap();
+    let m1 = Move::parse("move 1 from 2 to 1", 8000).unwrap();
+    let m2 = Move::parse("move 3 from 1 to 3", 8000).unwrap();
+    let m3 = Move::parse("move 2 from 2 to 1", 8000).unwrap();
+    let m4 = Move::parse("move 1 from 1 to 2", 8000).unwrap();
 
     sy.execute_move(m1);
     sy.execute_move(m2);
@@ -122,7 +145,7 @@ fn load_shipyard() -> Shipyard<char> {
     let lines: Vec<String> = readlines("start.txt").unwrap();
     let mut sy:Shipyard<char> = Shipyard::new(9);
     
-    for i in (0..lines.len()) {
+    for i in 0..lines.len() {
         sy.init_bay(i+1, lines[i].chars().collect());
     }
     println!("#{:?}", sy);
@@ -132,30 +155,41 @@ fn load_shipyard() -> Shipyard<char> {
 fn generate_key(sy: &Shipyard<char>) -> String {
     let mut res: Vec<char> = Vec::new();
 
-    for i in (1..sy.count+1) {
+    for i in 1..sy.count+1 {
         res.push(*sy.peek_bay(i).unwrap());
     }
     res.into_iter().collect()
 }
 
 
-fn main() {
+
+fn simulate(startup_file: &str, command_file: &str, version: usize) -> String {
     let mut sy: Shipyard<char> = load_shipyard();
-    let lines = readlines("input.txt").unwrap();
+    let lines = readlines(command_file).unwrap();
     let commands: Vec<Move> = lines
         .iter()
-        .map(|l| Move::parse(l).unwrap())
+        .map(|l| Move::parse(l, version).unwrap())
         .collect();
+
     for cmd in commands {
         sy.execute_move(cmd);
     }
 
-    let key: String = generate_key(&sy);
+    generate_key(&sy)
+}
 
+
+fn main() {
+
+    let part1 = simulate("start.txt", "input.txt", 8000);
+    
     print!("Part 1: ");
-    println!("{:?}", key);
+    println!("{:?}", part1);
 
-
+    let part2 = simulate("start.txt", "input.txt", 8001);
+    
+    print!("Part 2: ");
+    println!("{:?}", part2);
         
 
 }
